@@ -13,6 +13,7 @@ ALL_NUM_CONSUMERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 class Metric(Enum):
     TIME = 'time'
     CPU_UTILISATION = 'cpu_utilisation'
+    PACKET_LATENCY = 'packet_latency'
 
 
 class Variable(Enum):
@@ -27,11 +28,12 @@ def generate_filepath(metric, variable, format):
 
 def parse_data(filename):
     times = []
-    cpu_utilisations = []
+    lats = []
+    utils = []
     with open(f'./results/{filename}') as f:
         lines = f.readlines()
         for line in lines:
-            data = line.split(', ')
+            data = line.split(',')
 
             time = data[0]
             # TODO: Parse minutes?
@@ -39,11 +41,15 @@ def parse_data(filename):
             time = float(time)
             times.append(time)
 
-            cpu_utilisation = data[1]
-            cpu_utilisation = float(cpu_utilisation)
-            cpu_utilisations.append(cpu_utilisation)
+            lat = data[1]
+            lat = float(lat)
+            lats.append(lat)
 
-    return times, cpu_utilisations
+            util = data[2]
+            util = float(util)
+            utils.append(util)
+
+    return times, lats, utils
 
 
 def plot(variable):
@@ -56,33 +62,43 @@ def plot(variable):
         raise Exception
 
     s_times = []
+    s_lats = []
     s_utils = []
     for file in base_s_filenames:
         try:
-            times, utils = parse_data(file)
+            times, lats, utils = parse_data(file)
 
             avg_time = sum(times) / len(times)
             s_times.append(avg_time)
+
+            avg_lat = sum(lats) / len(lats)
+            s_lats.append(avg_lat)
 
             avg_util = sum(utils) / len(utils)
             s_utils.append(avg_util)
         except FileNotFoundError:
             s_times.append(None)
+            s_lats.append(None)
             s_utils.append(None)
 
     i_times = []
+    i_lats = []
     i_utils = []
     for file in base_i_filenames:
         try:
-            times, utils = parse_data(file)
+            times, lats, utils = parse_data(file)
 
             avg_time = sum(times) / len(times)
             i_times.append(avg_time)
+
+            avg_lat = sum(lats) / len(lats)
+            i_lats.append(avg_lat)
 
             avg_util = sum(utils) / len(utils)
             i_utils.append(avg_util)
         except FileNotFoundError:
             i_times.append(None)
+            i_lats.append(None)
             i_utils.append(None)
 
     s_times = np.array(s_times).astype(np.double)
@@ -98,6 +114,21 @@ def plot(variable):
     plt.legend()
     plt.savefig(generate_filepath(Metric.TIME, variable.NUM_PACKETS, 'png'), format='png')
     plt.savefig(generate_filepath(Metric.TIME, variable.NUM_PACKETS, 'svg'), format='svg')
+    plt.show()
+
+    s_lats = np.array(s_lats).astype(np.double)
+    s_mask = np.isfinite(s_lats)
+    i_lats = np.array(i_lats).astype(np.double)
+    i_mask = np.isfinite(i_lats)
+
+    plt.plot(xs[s_mask], s_lats[s_mask], linestyle='-', marker='o', label='CHERI')
+    plt.plot(xs[i_mask], i_lats[i_mask], linestyle='-', marker='o', label='IPC')
+    plt.title('Packet Latency')
+    plt.xlabel('Packet Count')
+    plt.ylabel('Latency (\u03BCs)')
+    plt.legend()
+    plt.savefig(generate_filepath(Metric.PACKET_LATENCY, variable.NUM_PACKETS, 'png'), format='png')
+    plt.savefig(generate_filepath(Metric.PACKET_LATENCY, variable.NUM_PACKETS, 'svg'), format='svg')
     plt.show()
 
     s_utls = np.array(s_utils).astype(np.double)
