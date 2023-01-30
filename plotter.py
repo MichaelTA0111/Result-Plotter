@@ -45,7 +45,7 @@ def parse_data(filename):
             lat = float(lat)
             lats.append(lat)
 
-            util = data[2]
+            util = data[3]
             util = float(util)
             utils.append(util)
 
