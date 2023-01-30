@@ -5,32 +5,32 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-ALL_PACKET_SIZES = [512, 1024, 2048, 4096, 8192, 16384, 32768]
-ALL_NUM_PACKETS = [20_000, 40_000, 60_000, 80_000, 100_000, 120_000, 140_000, 160_000, 180_000, 200_000]
-ALL_NUM_CONSUMERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+ALL_PACKET_SIZES = [512, 1_024, 2_048, 4_096, 8_192]
+ALL_PACKET_COUNTS = [20_000, 40_000, 60_000, 80_000, 100_000, 120_000, 140_000, 160_000, 180_000, 200_000]
+ALL_CONSUMER_COUNTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 
 class Metric(Enum):
-    TIME = 'time'
-    CPU_UTILISATION = 'cpu_utilisation'
-    PACKET_LATENCY = 'packet_latency'
+    TIME = ('time', 'Time (s)')
+    PACKET_LATENCY = ('packet_latency', 'Latency (\u03BCs)')
+    CPU_UTILISATION = ('cpu_utilisation', 'CPU Utilisation (%)')
 
 
 class Variable(Enum):
-    PACKET_SIZE = 'packet_size'
-    NUM_PACKETS = 'num_packets'
-    NUM_CONSUMERS = 'num_consumers'
+    PACKET_SIZE = ('packet_size', 'Packet Size (bytes)')
+    PACKET_COUNT = ('packet_count', 'Packet Count')
+    CONSUMER_COUNT = ('consumer_count', 'Consumer Count')
 
 
 def generate_filepath(metric, variable, format):
-    return f'./graphs/{metric.value}_v_{variable.value}.{format}'
+    return f'./graphs/{metric.value[0]}_v_{variable.value[1]}.{format}'
 
 
-def parse_data(filename):
+def parse_data(filename, variable):
     times = []
     lats = []
     utils = []
-    with open(f'./results/{filename}') as f:
+    with open(f'./results/{variable.value[0]}/{filename}') as f:
         lines = f.readlines()
         for line in lines:
             data = line.split(',')
@@ -55,9 +55,13 @@ def parse_data(filename):
 def plot(variable):
     # Specify 2 of 3 arguments
     if variable is Variable.PACKET_SIZE:
-        xs = np.array(ALL_NUM_PACKETS)
-        base_s_filenames = [f'512B__{z:_}P__2C__s.txt' for z in ALL_NUM_PACKETS]
-        base_i_filenames = [f'512B__{z:_}P__2C__i.txt' for z in ALL_NUM_PACKETS]
+        xs = np.array(ALL_PACKET_SIZES)
+        base_s_filenames = [f'{z:_}B__100_000P__2C__s.txt' for z in ALL_PACKET_SIZES]
+        base_i_filenames = [f'{z:_}B__100_000P__2C__i.txt' for z in ALL_PACKET_SIZES]
+    elif variable is Variable.PACKET_COUNT:
+        xs = np.array(ALL_PACKET_COUNTS)
+        base_s_filenames = [f'512B__{z:_}P__2C__s.txt' for z in ALL_PACKET_COUNTS]
+        base_i_filenames = [f'512B__{z:_}P__2C__i.txt' for z in ALL_PACKET_COUNTS]
     else:
         raise Exception
 
@@ -66,7 +70,7 @@ def plot(variable):
     s_utils = []
     for file in base_s_filenames:
         try:
-            times, lats, utils = parse_data(file)
+            times, lats, utils = parse_data(file, variable)
 
             avg_time = sum(times) / len(times)
             s_times.append(avg_time)
@@ -86,7 +90,7 @@ def plot(variable):
     i_utils = []
     for file in base_i_filenames:
         try:
-            times, lats, utils = parse_data(file)
+            times, lats, utils = parse_data(file, variable)
 
             avg_time = sum(times) / len(times)
             i_times.append(avg_time)
@@ -109,11 +113,11 @@ def plot(variable):
     plt.plot(xs[s_mask], s_times[s_mask], linestyle='-', marker='o', label='CHERI')
     plt.plot(xs[i_mask], i_times[i_mask], linestyle='-', marker='o', label='IPC')
     plt.title('Execution Time')
-    plt.xlabel('Packet Count')
-    plt.ylabel('Time (s)')
+    plt.xlabel(variable.value[1])
+    plt.ylabel(Metric.TIME.value[1])
     plt.legend()
-    plt.savefig(generate_filepath(Metric.TIME, variable.NUM_PACKETS, 'png'), format='png')
-    plt.savefig(generate_filepath(Metric.TIME, variable.NUM_PACKETS, 'svg'), format='svg')
+    plt.savefig(generate_filepath(Metric.TIME, variable.PACKET_COUNT, 'png'), format='png')
+    plt.savefig(generate_filepath(Metric.TIME, variable.PACKET_COUNT, 'svg'), format='svg')
     plt.show()
 
     s_lats = np.array(s_lats).astype(np.double)
@@ -124,11 +128,11 @@ def plot(variable):
     plt.plot(xs[s_mask], s_lats[s_mask], linestyle='-', marker='o', label='CHERI')
     plt.plot(xs[i_mask], i_lats[i_mask], linestyle='-', marker='o', label='IPC')
     plt.title('Packet Latency')
-    plt.xlabel('Packet Count')
-    plt.ylabel('Latency (\u03BCs)')
+    plt.xlabel(variable.value[1])
+    plt.ylabel(Metric.PACKET_LATENCY.value[1])
     plt.legend()
-    plt.savefig(generate_filepath(Metric.PACKET_LATENCY, variable.NUM_PACKETS, 'png'), format='png')
-    plt.savefig(generate_filepath(Metric.PACKET_LATENCY, variable.NUM_PACKETS, 'svg'), format='svg')
+    plt.savefig(generate_filepath(Metric.PACKET_LATENCY, variable.PACKET_COUNT, 'png'), format='png')
+    plt.savefig(generate_filepath(Metric.PACKET_LATENCY, variable.PACKET_COUNT, 'svg'), format='svg')
     plt.show()
 
     s_utls = np.array(s_utils).astype(np.double)
@@ -139,13 +143,14 @@ def plot(variable):
     plt.plot(xs[s_mask], s_utls[s_mask], linestyle='-', marker='o', label='CHERI')
     plt.plot(xs[i_mask], i_utls[i_mask], linestyle='-', marker='o', label='IPC')
     plt.title('CPU Utilisation')
-    plt.xlabel('Packet Count')
-    plt.ylabel('CPU Utilisation (%)')
+    plt.xlabel(variable.value[1])
+    plt.ylabel(Metric.CPU_UTILISATION.value[1])
     plt.legend()
-    plt.savefig(generate_filepath(Metric.CPU_UTILISATION, variable.NUM_PACKETS, 'png'), format='png')
-    plt.savefig(generate_filepath(Metric.CPU_UTILISATION, variable.NUM_PACKETS, 'svg'), format='svg')
+    plt.savefig(generate_filepath(Metric.CPU_UTILISATION, variable.PACKET_COUNT, 'png'), format='png')
+    plt.savefig(generate_filepath(Metric.CPU_UTILISATION, variable.PACKET_COUNT, 'svg'), format='svg')
     plt.show()
 
 
 if __name__ == '__main__':
     plot(Variable.PACKET_SIZE)
+    plot(Variable.PACKET_COUNT)
