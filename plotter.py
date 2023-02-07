@@ -23,7 +23,7 @@ class Variable(Enum):
 
 
 def generate_filepath(metric, variable, format):
-    return f'./graphs/{metric.value[0]}_v_{variable.value[1]}.{format}'
+    return f'./graphs/{metric.value[0]}_v_{variable.value[0]}.{format}'
 
 
 def parse_data(filename, variable):
@@ -116,8 +116,8 @@ def plot(variable):
     plt.xlabel(variable.value[1])
     plt.ylabel(Metric.TIME.value[1])
     plt.legend()
-    plt.savefig(generate_filepath(Metric.TIME, variable.PACKET_COUNT, 'png'), format='png')
-    plt.savefig(generate_filepath(Metric.TIME, variable.PACKET_COUNT, 'svg'), format='svg')
+    plt.savefig(generate_filepath(Metric.TIME, variable, 'png'), format='png')
+    plt.savefig(generate_filepath(Metric.TIME, variable, 'svg'), format='svg')
     plt.show()
 
     s_lats = np.array(s_lats).astype(np.double)
@@ -131,8 +131,8 @@ def plot(variable):
     plt.xlabel(variable.value[1])
     plt.ylabel(Metric.PACKET_LATENCY.value[1])
     plt.legend()
-    plt.savefig(generate_filepath(Metric.PACKET_LATENCY, variable.PACKET_COUNT, 'png'), format='png')
-    plt.savefig(generate_filepath(Metric.PACKET_LATENCY, variable.PACKET_COUNT, 'svg'), format='svg')
+    plt.savefig(generate_filepath(Metric.PACKET_LATENCY, variable, 'png'), format='png')
+    plt.savefig(generate_filepath(Metric.PACKET_LATENCY, variable, 'svg'), format='svg')
     plt.show()
 
     s_utls = np.array(s_utils).astype(np.double)
@@ -146,8 +146,8 @@ def plot(variable):
     plt.xlabel(variable.value[1])
     plt.ylabel(Metric.CPU_UTILISATION.value[1])
     plt.legend()
-    plt.savefig(generate_filepath(Metric.CPU_UTILISATION, variable.PACKET_COUNT, 'png'), format='png')
-    plt.savefig(generate_filepath(Metric.CPU_UTILISATION, variable.PACKET_COUNT, 'svg'), format='svg')
+    plt.savefig(generate_filepath(Metric.CPU_UTILISATION, variable, 'png'), format='png')
+    plt.savefig(generate_filepath(Metric.CPU_UTILISATION, variable, 'svg'), format='svg')
     plt.show()
 
 
