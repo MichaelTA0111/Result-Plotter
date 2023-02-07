@@ -1,5 +1,6 @@
 from enum import Enum
 import re
+from statistics import mean, stdev
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -11,26 +12,36 @@ ALL_CONSUMER_COUNTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 
 class Metric(Enum):
-    TIME = ('time', 'Time (s)')
-    PACKET_LATENCY = ('packet_latency', 'Latency (\u03BCs)')
-    CPU_UTILISATION = ('cpu_utilisation', 'CPU Utilisation (%)')
+    TIME = ('Execution Time', 'time', 'Time (s)')
+    PACKET_LATENCY = ('Packet Latency', 'packet_latency', 'Latency (\u03BCs)')
+    CPU_UTILISATION = ('CPU Utilisation', 'cpu_utilisation', 'CPU Utilisation (%)')
+
+    def __init__(self, title, partial_filename, axis):
+        self.title = title
+        self.partial_filename = partial_filename
+        self.axis = axis
 
 
 class Variable(Enum):
-    PACKET_SIZE = ('packet_size', 'Packet Size (bytes)')
-    PACKET_COUNT = ('packet_count', 'Packet Count')
-    CONSUMER_COUNT = ('consumer_count', 'Consumer Count')
+    PACKET_SIZE = ('Packet Size', 'packet_size', 'Packet Size (bytes)')
+    PACKET_COUNT = ('Packet Count', 'packet_count', 'Packet Count')
+    CONSUMER_COUNT = ('Consumer Count', 'consumer_count', 'Consumer Count')
+
+    def __init__(self, title, partial_filename, axis):
+        self.title = title
+        self.partial_filename = partial_filename
+        self.axis = axis
 
 
 def generate_filepath(metric, variable, format):
-    return f'./graphs/{metric.value[0]}_v_{variable.value[0]}.{format}'
+    return f'./graphs/{metric.partial_filename}_v_{variable.partial_filename}.{format}'
 
 
 def parse_data(filename, variable):
     times = []
     lats = []
     utils = []
-    with open(f'./results/{variable.value[0]}/{filename}') as f:
+    with open(f'./results/{variable.partial_filename}/{filename}') as f:
         lines = f.readlines()
         for line in lines:
             data = line.split(',')
@@ -52,7 +63,19 @@ def parse_data(filename, variable):
     return times, lats, utils
 
 
-def plot(variable):
+def plot(xs, s_mean, s_sd, i_mean, i_sd, metric, variable):
+    plt.errorbar(xs, s_mean, s_sd, linestyle='None', marker='x', label='CHERI', capsize=5, elinewidth=1)
+    plt.errorbar(xs, i_mean, i_sd, linestyle='None', marker='x', label='IPC', capsize=5, elinewidth=1)
+    plt.title(f'{metric.title} Vs. {variable.title}')
+    plt.xlabel(variable.axis)
+    plt.ylabel(metric.axis)
+    plt.legend()
+    plt.savefig(generate_filepath(metric, variable, 'png'), format='png')
+    plt.savefig(generate_filepath(metric, variable, 'svg'), format='svg')
+    plt.show()
+
+
+def plot_all(variable):
     # Specify 2 of 3 arguments
     if variable is Variable.PACKET_SIZE:
         xs = np.array(ALL_PACKET_SIZES)
@@ -65,92 +88,63 @@ def plot(variable):
     else:
         raise Exception
 
-    s_times = []
-    s_lats = []
-    s_utils = []
+    s_time_mean = []
+    s_time_sd = []
+    s_lat_mean = []
+    s_lat_sd = []
+    s_util_mean = []
+    s_util_sd = []
     for file in base_s_filenames:
         try:
             times, lats, utils = parse_data(file, variable)
 
-            avg_time = sum(times) / len(times)
-            s_times.append(avg_time)
+            s_time_mean.append(mean(times))
+            s_time_sd.append(stdev(times))
 
-            avg_lat = sum(lats) / len(lats)
-            s_lats.append(avg_lat)
+            s_lat_mean.append(mean(lats))
+            s_lat_sd.append(stdev(lats))
 
-            avg_util = sum(utils) / len(utils)
-            s_utils.append(avg_util)
+            s_util_mean.append(mean(utils))
+            s_util_sd.append(stdev(utils))
         except FileNotFoundError:
-            s_times.append(None)
-            s_lats.append(None)
-            s_utils.append(None)
+            s_time_mean.append(None)
+            s_time_sd.append(None)
+            s_lat_mean.append(None)
+            s_lat_sd.append(None)
+            s_util_mean.append(None)
+            s_util_sd.append(None)
 
-    i_times = []
-    i_lats = []
-    i_utils = []
+    i_time_mean = []
+    i_time_sd = []
+    i_lat_mean = []
+    i_lat_sd = []
+    i_util_mean = []
+    i_util_sd = []
     for file in base_i_filenames:
         try:
             times, lats, utils = parse_data(file, variable)
 
-            avg_time = sum(times) / len(times)
-            i_times.append(avg_time)
+            i_time_mean.append(mean(times))
+            i_time_sd.append(stdev(times))
 
-            avg_lat = sum(lats) / len(lats)
-            i_lats.append(avg_lat)
+            i_lat_mean.append(mean(lats))
+            i_lat_sd.append(stdev(lats))
 
-            avg_util = sum(utils) / len(utils)
-            i_utils.append(avg_util)
+            i_util_mean.append(mean(utils))
+            i_util_sd.append(stdev(utils))
         except FileNotFoundError:
-            i_times.append(None)
-            i_lats.append(None)
-            i_utils.append(None)
+            i_time_mean.append(None)
+            i_time_sd.append(None)
+            i_lat_mean.append(None)
+            i_lat_sd.append(None)
+            i_util_mean.append(None)
+            i_util_sd.append(None)
 
-    s_times = np.array(s_times).astype(np.double)
-    s_mask = np.isfinite(s_times)
-    i_times = np.array(i_times).astype(np.double)
-    i_mask = np.isfinite(i_times)
-
-    plt.plot(xs[s_mask], s_times[s_mask], linestyle='-', marker='o', label='CHERI')
-    plt.plot(xs[i_mask], i_times[i_mask], linestyle='-', marker='o', label='IPC')
-    plt.title('Execution Time')
-    plt.xlabel(variable.value[1])
-    plt.ylabel(Metric.TIME.value[1])
-    plt.legend()
-    plt.savefig(generate_filepath(Metric.TIME, variable, 'png'), format='png')
-    plt.savefig(generate_filepath(Metric.TIME, variable, 'svg'), format='svg')
-    plt.show()
-
-    s_lats = np.array(s_lats).astype(np.double)
-    s_mask = np.isfinite(s_lats)
-    i_lats = np.array(i_lats).astype(np.double)
-    i_mask = np.isfinite(i_lats)
-
-    plt.plot(xs[s_mask], s_lats[s_mask], linestyle='-', marker='o', label='CHERI')
-    plt.plot(xs[i_mask], i_lats[i_mask], linestyle='-', marker='o', label='IPC')
-    plt.title('Packet Latency')
-    plt.xlabel(variable.value[1])
-    plt.ylabel(Metric.PACKET_LATENCY.value[1])
-    plt.legend()
-    plt.savefig(generate_filepath(Metric.PACKET_LATENCY, variable, 'png'), format='png')
-    plt.savefig(generate_filepath(Metric.PACKET_LATENCY, variable, 'svg'), format='svg')
-    plt.show()
-
-    s_utls = np.array(s_utils).astype(np.double)
-    s_mask = np.isfinite(s_utls)
-    i_utls = np.array(i_utils).astype(np.double)
-    i_mask = np.isfinite(i_utls)
-
-    plt.plot(xs[s_mask], s_utls[s_mask], linestyle='-', marker='o', label='CHERI')
-    plt.plot(xs[i_mask], i_utls[i_mask], linestyle='-', marker='o', label='IPC')
-    plt.title('CPU Utilisation')
-    plt.xlabel(variable.value[1])
-    plt.ylabel(Metric.CPU_UTILISATION.value[1])
-    plt.legend()
-    plt.savefig(generate_filepath(Metric.CPU_UTILISATION, variable, 'png'), format='png')
-    plt.savefig(generate_filepath(Metric.CPU_UTILISATION, variable, 'svg'), format='svg')
-    plt.show()
+    plot(xs, s_time_mean, s_time_sd, i_time_mean, i_time_sd, Metric.TIME, variable)
+    plot(xs, s_lat_mean, s_lat_sd, i_lat_mean, i_lat_sd, Metric.PACKET_LATENCY, variable)
+    plot(xs, s_util_mean, s_util_sd, i_util_mean, i_util_sd, Metric.CPU_UTILISATION, variable)
 
 
 if __name__ == '__main__':
-    plot(Variable.PACKET_SIZE)
-    plot(Variable.PACKET_COUNT)
+    plot_all(Variable.PACKET_SIZE)
+    plot_all(Variable.PACKET_COUNT)
