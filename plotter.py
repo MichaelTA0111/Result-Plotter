@@ -64,8 +64,17 @@ def parse_data(filename, variable):
 
 
 def plot(xs, s_mean, s_sd, i_mean, i_sd, metric, variable):
-    plt.errorbar(xs, s_mean, s_sd, linestyle='None', marker='x', label='CHERI', capsize=5, elinewidth=1)
-    plt.errorbar(xs, i_mean, i_sd, linestyle='None', marker='x', label='IPC', capsize=5, elinewidth=1)
+    s_mean = np.array(s_mean).astype(np.double)
+    s_sd = np.array(s_sd).astype(np.double)
+    s_mask = np.isfinite(s_mean)
+    i_mean = np.array(i_mean).astype(np.double)
+    i_sd = np.array(i_sd).astype(np.double)
+    i_mask = np.isfinite(i_mean)
+
+    plt.errorbar(xs[s_mask], s_mean[s_mask], s_sd[s_mask],
+                 linestyle='None', marker='x', label='CHERI', capsize=5, elinewidth=1)
+    plt.errorbar(xs[i_mask], i_mean[i_mask], i_sd[i_mask],
+                 linestyle='None', marker='x', label='IPC', capsize=5, elinewidth=1)
     plt.title(f'{metric.title} Vs. {variable.title}')
     plt.xlabel(variable.axis)
     plt.ylabel(metric.axis)
