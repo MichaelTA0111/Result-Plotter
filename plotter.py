@@ -246,7 +246,7 @@ def plot_all(variable):
     plot_n(xs, s_lat_mean, s_lat_sd, i_lat_mean, i_lat_sd, n_lat_mean, n_lat_sd, Metric.PACKET_LATENCY, variable)
     plot_n(xs, s_util_mean, s_util_sd, i_util_mean, i_util_sd, n_util_mean, n_util_sd, Metric.CPU_UTILISATION, variable)
 
-    print_adjusted_latencies(n_lat_mean, s_lat_mean, i_lat_mean)
+    print_adjusted_latencies(s_lat_mean, i_lat_mean, n_lat_mean)
     plot_adjusted(xs, s_lat_mean, s_lat_sd, i_lat_mean, i_lat_sd, n_lat_mean, Metric.PACKET_LATENCY, variable)
 
 
