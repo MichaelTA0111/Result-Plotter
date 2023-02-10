@@ -37,11 +37,11 @@ def generate_filepath(metric, variable, format):
     return f'./graphs/{metric.partial_filename}_v_{variable.partial_filename}.{format}'
 
 
-def parse_data(filename, variable):
+def parse_data(filename, variable, proc):
     times = []
     lats = []
     utils = []
-    with open(f'./results/{variable.partial_filename}/{filename}') as f:
+    with open(f'./results/{variable.partial_filename}/{proc}/{filename}') as f:
         lines = f.readlines()
         for line in lines:
             data = line.split(',')
@@ -56,7 +56,7 @@ def parse_data(filename, variable):
             lat = float(lat)
             lats.append(lat)
 
-            util = data[3]
+            util = data[2]
             util = float(util)
             utils.append(util)
 
@@ -88,12 +88,12 @@ def plot_all(variable):
     # Specify 2 of 3 arguments
     if variable is Variable.PACKET_SIZE:
         xs = np.array(ALL_PACKET_SIZES)
-        base_s_filenames = [f'{z:_}B__100_000P__2C__s.txt' for z in ALL_PACKET_SIZES]
-        base_i_filenames = [f'{z:_}B__100_000P__2C__i.txt' for z in ALL_PACKET_SIZES]
+        base_s_filenames = [f'{z:_}B__100_000P__2C.txt' for z in ALL_PACKET_SIZES]
+        base_i_filenames = [f'{z:_}B__100_000P__2C.txt' for z in ALL_PACKET_SIZES]
     elif variable is Variable.PACKET_COUNT:
         xs = np.array(ALL_PACKET_COUNTS)
-        base_s_filenames = [f'512B__{z:_}P__2C__s.txt' for z in ALL_PACKET_COUNTS]
-        base_i_filenames = [f'512B__{z:_}P__2C__i.txt' for z in ALL_PACKET_COUNTS]
+        base_s_filenames = [f'512B__{z:_}P__2C.txt' for z in ALL_PACKET_COUNTS]
+        base_i_filenames = [f'512B__{z:_}P__2C.txt' for z in ALL_PACKET_COUNTS]
     else:
         raise Exception
 
@@ -105,7 +105,7 @@ def plot_all(variable):
     s_util_sd = []
     for file in base_s_filenames:
         try:
-            times, lats, utils = parse_data(file, variable)
+            times, lats, utils = parse_data(file, variable, 'cheri')
 
             s_time_mean.append(mean(times))
             s_time_sd.append(stdev(times))
@@ -131,7 +131,7 @@ def plot_all(variable):
     i_util_sd = []
     for file in base_i_filenames:
         try:
-            times, lats, utils = parse_data(file, variable)
+            times, lats, utils = parse_data(file, variable, 'ipc')
 
             i_time_mean.append(mean(times))
             i_time_sd.append(stdev(times))
