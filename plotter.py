@@ -63,7 +63,10 @@ def parse_data(filename, variable, proc):
     return times, lats, utils
 
 
-def plot(xs, s_mean, s_sd, i_mean, i_sd, metric, variable):
+def plot(xs, n_mean, n_sd, s_mean, s_sd, i_mean, i_sd, metric, variable):
+    n_mean = np.array(n_mean).astype(np.double)
+    n_sd = np.array(n_sd).astype(np.double)
+    n_mask = np.isfinite(n_mean)
     s_mean = np.array(s_mean).astype(np.double)
     s_sd = np.array(s_sd).astype(np.double)
     s_mask = np.isfinite(s_mean)
@@ -71,6 +74,8 @@ def plot(xs, s_mean, s_sd, i_mean, i_sd, metric, variable):
     i_sd = np.array(i_sd).astype(np.double)
     i_mask = np.isfinite(i_mean)
 
+    plt.errorbar(xs[n_mask], n_mean[n_mask], n_sd[n_mask],
+                 linestyle='None', marker='x', label='No Proc', capsize=5, elinewidth=1)
     plt.errorbar(xs[s_mask], s_mean[s_mask], s_sd[s_mask],
                  linestyle='None', marker='x', label='CHERI', capsize=5, elinewidth=1)
     plt.errorbar(xs[i_mask], i_mean[i_mask], i_sd[i_mask],
@@ -96,6 +101,32 @@ def plot_all(variable):
         base_i_filenames = [f'512B__{z:_}P__2C.txt' for z in ALL_PACKET_COUNTS]
     else:
         raise Exception
+
+    n_time_mean = []
+    n_time_sd = []
+    n_lat_mean = []
+    n_lat_sd = []
+    n_util_mean = []
+    n_util_sd = []
+    for file in base_s_filenames:
+        try:
+            times, lats, utils = parse_data(file, variable, 'none')
+
+            n_time_mean.append(mean(times))
+            n_time_sd.append(stdev(times))
+
+            n_lat_mean.append(mean(lats))
+            n_lat_sd.append(stdev(lats))
+
+            n_util_mean.append(mean(utils))
+            n_util_sd.append(stdev(utils))
+        except FileNotFoundError:
+            n_time_mean.append(None)
+            n_time_sd.append(None)
+            n_lat_mean.append(None)
+            n_lat_sd.append(None)
+            n_util_mean.append(None)
+            n_util_sd.append(None)
 
     s_time_mean = []
     s_time_sd = []
@@ -149,9 +180,9 @@ def plot_all(variable):
             i_util_mean.append(None)
             i_util_sd.append(None)
 
-    plot(xs, s_time_mean, s_time_sd, i_time_mean, i_time_sd, Metric.TIME, variable)
-    plot(xs, s_lat_mean, s_lat_sd, i_lat_mean, i_lat_sd, Metric.PACKET_LATENCY, variable)
-    plot(xs, s_util_mean, s_util_sd, i_util_mean, i_util_sd, Metric.CPU_UTILISATION, variable)
+    plot(xs, n_time_mean, n_time_sd, s_time_mean, s_time_sd, i_time_mean, i_time_sd, Metric.TIME, variable)
+    plot(xs, n_lat_mean, n_lat_sd, s_lat_mean, s_lat_sd, i_lat_mean, i_lat_sd, Metric.PACKET_LATENCY, variable)
+    plot(xs, n_util_mean, n_util_sd, s_util_mean, s_util_sd, i_util_mean, i_util_sd, Metric.CPU_UTILISATION, variable)
 
 
 if __name__ == '__main__':
