@@ -33,8 +33,13 @@ class Variable(Enum):
         self.axis = axis
 
 
-def generate_filepath(metric, variable, format):
-    return f'./graphs/{metric.partial_filename}_v_{variable.partial_filename}.{format}'
+def generate_filepath(metric, variable, format, adjusted=False, noproc=False):
+    if adjusted:
+        return f'./graphs/adjusted_{metric.partial_filename}_v_{variable.partial_filename}.{format}'
+    elif noproc:
+        return f'./graphs/{metric.partial_filename}_v_{variable.partial_filename}_with_noproc.{format}'
+    else:
+        return f'./graphs/{metric.partial_filename}_v_{variable.partial_filename}.{format}'
 
 
 def parse_data(filename, variable, proc):
@@ -63,10 +68,7 @@ def parse_data(filename, variable, proc):
     return times, lats, utils
 
 
-def plot(xs, n_mean, n_sd, s_mean, s_sd, i_mean, i_sd, metric, variable):
-    n_mean = np.array(n_mean).astype(np.double)
-    n_sd = np.array(n_sd).astype(np.double)
-    n_mask = np.isfinite(n_mean)
+def plot(xs, s_mean, s_sd, i_mean, i_sd, metric, variable):
     s_mean = np.array(s_mean).astype(np.double)
     s_sd = np.array(s_sd).astype(np.double)
     s_mask = np.isfinite(s_mean)
@@ -74,8 +76,6 @@ def plot(xs, n_mean, n_sd, s_mean, s_sd, i_mean, i_sd, metric, variable):
     i_sd = np.array(i_sd).astype(np.double)
     i_mask = np.isfinite(i_mean)
 
-    plt.errorbar(xs[n_mask], n_mean[n_mask], n_sd[n_mask],
-                 linestyle='None', marker='x', label='No Proc', capsize=5, elinewidth=1)
     plt.errorbar(xs[s_mask], s_mean[s_mask], s_sd[s_mask],
                  linestyle='None', marker='x', label='CHERI', capsize=5, elinewidth=1)
     plt.errorbar(xs[i_mask], i_mean[i_mask], i_sd[i_mask],
@@ -87,6 +87,64 @@ def plot(xs, n_mean, n_sd, s_mean, s_sd, i_mean, i_sd, metric, variable):
     plt.savefig(generate_filepath(metric, variable, 'png'), format='png')
     plt.savefig(generate_filepath(metric, variable, 'svg'), format='svg')
     plt.show()
+
+
+def plot_n(xs, s_mean, s_sd, i_mean, i_sd, n_mean, n_sd, metric, variable):
+    s_mean = np.array(s_mean).astype(np.double)
+    s_sd = np.array(s_sd).astype(np.double)
+    s_mask = np.isfinite(s_mean)
+    i_mean = np.array(i_mean).astype(np.double)
+    i_sd = np.array(i_sd).astype(np.double)
+    i_mask = np.isfinite(i_mean)
+    n_mean = np.array(n_mean).astype(np.double)
+    n_sd = np.array(n_sd).astype(np.double)
+    n_mask = np.isfinite(n_mean)
+
+    plt.errorbar(xs[s_mask], s_mean[s_mask], s_sd[s_mask],
+                 linestyle='None', marker='x', label='CHERI', capsize=5, elinewidth=1)
+    plt.errorbar(xs[i_mask], i_mean[i_mask], i_sd[i_mask],
+                 linestyle='None', marker='x', label='IPC', capsize=5, elinewidth=1)
+    plt.errorbar(xs[n_mask], n_mean[n_mask], n_sd[n_mask],
+                 linestyle='None', marker='x', label='No Proc', capsize=5, elinewidth=1)
+    plt.title(f'{metric.title} Vs. {variable.title}')
+    plt.xlabel(variable.axis)
+    plt.ylabel(metric.axis)
+    plt.legend()
+    plt.savefig(generate_filepath(metric, variable, 'png', noproc=True), format='png')
+    plt.savefig(generate_filepath(metric, variable, 'svg', noproc=True), format='svg')
+    plt.show()
+
+
+def plot_adjusted(xs, s_mean, s_sd, i_mean, i_sd, n_mean, metric, variable):
+    s_mean = [s - n for s, n in zip(s_mean, n_mean)]
+    i_mean = [i - n for i, n in zip(i_mean, n_mean)]
+
+    s_mean = np.array(s_mean).astype(np.double)
+    s_sd = np.array(s_sd).astype(np.double)
+    s_mask = np.isfinite(s_mean)
+    i_mean = np.array(i_mean).astype(np.double)
+    i_sd = np.array(i_sd).astype(np.double)
+    i_mask = np.isfinite(i_mean)
+
+    plt.errorbar(xs[s_mask], s_mean[s_mask], s_sd[s_mask],
+                 linestyle='None', marker='x', label='CHERI', capsize=5, elinewidth=1)
+    plt.errorbar(xs[i_mask], i_mean[i_mask], i_sd[i_mask],
+                 linestyle='None', marker='x', label='IPC', capsize=5, elinewidth=1)
+    plt.title(f'{metric.title} Vs. {variable.title}')
+    plt.xlabel(variable.axis)
+    plt.ylabel(metric.axis)
+    plt.legend()
+    plt.savefig(generate_filepath(metric, variable, 'png', adjusted=True), format='png')
+    plt.savefig(generate_filepath(metric, variable, 'svg', adjusted=True), format='svg')
+    plt.show()
+
+
+def print_adjusted_latencies(s_mean, i_mean, n_mean):
+    s_mean_adj = [s - n for s, n in zip(s_mean, n_mean)]
+    i_mean_adj = [i - n for i, n in zip(i_mean, n_mean)]
+
+    print(f'Adjusted CHERI packet processing latencies {s_mean_adj}')
+    print(f'Adjusted IPC packet processing latencies {i_mean_adj}')
 
 
 def plot_all(variable):
@@ -101,32 +159,6 @@ def plot_all(variable):
         base_i_filenames = [f'512B__{z:_}P__2C.txt' for z in ALL_PACKET_COUNTS]
     else:
         raise Exception
-
-    n_time_mean = []
-    n_time_sd = []
-    n_lat_mean = []
-    n_lat_sd = []
-    n_util_mean = []
-    n_util_sd = []
-    for file in base_s_filenames:
-        try:
-            times, lats, utils = parse_data(file, variable, 'none')
-
-            n_time_mean.append(mean(times))
-            n_time_sd.append(stdev(times))
-
-            n_lat_mean.append(mean(lats))
-            n_lat_sd.append(stdev(lats))
-
-            n_util_mean.append(mean(utils))
-            n_util_sd.append(stdev(utils))
-        except FileNotFoundError:
-            n_time_mean.append(None)
-            n_time_sd.append(None)
-            n_lat_mean.append(None)
-            n_lat_sd.append(None)
-            n_util_mean.append(None)
-            n_util_sd.append(None)
 
     s_time_mean = []
     s_time_sd = []
@@ -180,9 +212,42 @@ def plot_all(variable):
             i_util_mean.append(None)
             i_util_sd.append(None)
 
-    plot(xs, n_time_mean, n_time_sd, s_time_mean, s_time_sd, i_time_mean, i_time_sd, Metric.TIME, variable)
-    plot(xs, n_lat_mean, n_lat_sd, s_lat_mean, s_lat_sd, i_lat_mean, i_lat_sd, Metric.PACKET_LATENCY, variable)
-    plot(xs, n_util_mean, n_util_sd, s_util_mean, s_util_sd, i_util_mean, i_util_sd, Metric.CPU_UTILISATION, variable)
+    n_time_mean = []
+    n_time_sd = []
+    n_lat_mean = []
+    n_lat_sd = []
+    n_util_mean = []
+    n_util_sd = []
+    for file in base_s_filenames:
+        try:
+            times, lats, utils = parse_data(file, variable, 'none')
+
+            n_time_mean.append(mean(times))
+            n_time_sd.append(stdev(times))
+
+            n_lat_mean.append(mean(lats))
+            n_lat_sd.append(stdev(lats))
+
+            n_util_mean.append(mean(utils))
+            n_util_sd.append(stdev(utils))
+        except FileNotFoundError:
+            n_time_mean.append(None)
+            n_time_sd.append(None)
+            n_lat_mean.append(None)
+            n_lat_sd.append(None)
+            n_util_mean.append(None)
+            n_util_sd.append(None)
+
+    plot(xs, s_time_mean, s_time_sd, i_time_mean, i_time_sd, Metric.TIME, variable)
+    plot(xs, s_lat_mean, s_lat_sd, i_lat_mean, i_lat_sd, Metric.PACKET_LATENCY, variable)
+    plot(xs, s_util_mean, s_util_sd, i_util_mean, i_util_sd, Metric.CPU_UTILISATION, variable)
+
+    plot_n(xs, s_time_mean, s_time_sd, i_time_mean, i_time_sd, n_time_mean, n_time_sd, Metric.TIME, variable)
+    plot_n(xs, s_lat_mean, s_lat_sd, i_lat_mean, i_lat_sd, n_lat_mean, n_lat_sd, Metric.PACKET_LATENCY, variable)
+    plot_n(xs, s_util_mean, s_util_sd, i_util_mean, i_util_sd, n_util_mean, n_util_sd, Metric.CPU_UTILISATION, variable)
+
+    print_adjusted_latencies(n_lat_mean, s_lat_mean, i_lat_mean)
+    plot_adjusted(xs, s_lat_mean, s_lat_sd, i_lat_mean, i_lat_sd, n_lat_mean, Metric.PACKET_LATENCY, variable)
 
 
 if __name__ == '__main__':
