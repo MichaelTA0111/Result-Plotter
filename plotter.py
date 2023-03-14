@@ -4,6 +4,10 @@ from statistics import mean, stdev
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
+
+fmt = '${x:,}'
+tick = mtick.StrMethodFormatter(fmt)
 
 
 ALL_PACKET_SIZES = [512, 1_024, 2_048, 4_096, 8_192]
@@ -83,6 +87,11 @@ def plot(xs, s_mean, s_sd, i_mean, i_sd, metric, variable):
     plt.title(f'{metric.title} Vs. {variable.title}')
     plt.xlabel(variable.axis)
     plt.ylabel(metric.axis)
+    if variable is Variable.PACKET_COUNT:
+        plt.xticks(ALL_PACKET_COUNTS, fontsize=8)
+    elif variable is Variable.PACKET_SIZE:
+        plt.xticks(ALL_PACKET_SIZES, fontsize=8)
+    plt.yticks(fontsize=8)
     plt.legend()
     plt.savefig(generate_filepath(metric, variable, 'png'), format='png')
     plt.savefig(generate_filepath(metric, variable, 'svg'), format='svg')
@@ -109,6 +118,12 @@ def plot_n(xs, s_mean, s_sd, i_mean, i_sd, n_mean, n_sd, metric, variable):
     plt.title(f'{metric.title} Vs. {variable.title}')
     plt.xlabel(variable.axis)
     plt.ylabel(metric.axis)
+    if variable is Variable.PACKET_COUNT:
+        plt.xticks(ALL_PACKET_COUNTS, fontsize=8)
+    elif variable is Variable.PACKET_SIZE:
+        plt.xticks(ALL_PACKET_SIZES, fontsize=8)
+    plt.yticks(fontsize=8)
+    plt.gca().ticklabel_format(style='plain')
     plt.legend()
     plt.savefig(generate_filepath(metric, variable, 'png', noproc=True), format='png')
     plt.savefig(generate_filepath(metric, variable, 'svg', noproc=True), format='svg')
@@ -133,6 +148,12 @@ def plot_adjusted(xs, s_mean, s_sd, i_mean, i_sd, n_mean, metric, variable):
     plt.title(f'{metric.title} Vs. {variable.title}')
     plt.xlabel(variable.axis)
     plt.ylabel(metric.axis)
+    if variable is Variable.PACKET_COUNT:
+        plt.xticks(ALL_PACKET_COUNTS, fontsize=8)
+    elif variable is Variable.PACKET_SIZE:
+        plt.xticks(ALL_PACKET_SIZES, fontsize=8)
+    plt.yticks(fontsize=8)
+    plt.gca().ticklabel_format(style='plain')
     plt.legend()
     plt.savefig(generate_filepath(metric, variable, 'png', adjusted=True), format='png')
     plt.savefig(generate_filepath(metric, variable, 'svg', adjusted=True), format='svg')
