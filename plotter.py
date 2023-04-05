@@ -168,6 +168,14 @@ def print_adjusted_latencies(s_mean, i_mean, n_mean):
     print(f'Adjusted IPC packet processing latencies {i_mean_adj}')
 
 
+def print_adjusted_utilisations(s_mean, i_mean, n_mean):
+    s_mean_adj = [s - n for s, n in zip(s_mean, n_mean)]
+    i_mean_adj = [i - n for i, n in zip(i_mean, n_mean)]
+
+    print(f'Adjusted CHERI CPU utilisations {s_mean_adj}')
+    print(f'Adjusted IPC CPU utilisations {i_mean_adj}')
+
+
 def plot_all(variable):
     # Specify 2 of 3 arguments
     if variable is Variable.PACKET_SIZE:
@@ -269,6 +277,8 @@ def plot_all(variable):
 
     print_adjusted_latencies(s_lat_mean, i_lat_mean, n_lat_mean)
     plot_adjusted(xs, s_lat_mean, s_lat_sd, i_lat_mean, i_lat_sd, n_lat_mean, Metric.PACKET_LATENCY, variable)
+    print_adjusted_utilisations(s_util_mean, i_util_mean, n_util_mean)
+    plot_adjusted(xs, s_util_mean, s_util_sd, i_util_mean, i_util_sd, n_util_mean, Metric.PACKET_LATENCY, variable)
 
 
 if __name__ == '__main__':
