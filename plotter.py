@@ -145,7 +145,7 @@ def plot_adjusted(xs, s_mean, s_sd, i_mean, i_sd, n_mean, metric, variable):
                  linestyle='None', marker='x', label='CHERI', capsize=5, elinewidth=1)
     plt.errorbar(xs[i_mask], i_mean[i_mask], i_sd[i_mask],
                  linestyle='None', marker='x', label='IPC', capsize=5, elinewidth=1)
-    plt.title(f'{metric.title} Vs. {variable.title}')
+    plt.title(f'Corrected {metric.title} Vs. {variable.title}')
     plt.xlabel(variable.axis)
     plt.ylabel(metric.axis)
     if variable is Variable.PACKET_COUNT:
@@ -158,6 +158,14 @@ def plot_adjusted(xs, s_mean, s_sd, i_mean, i_sd, n_mean, metric, variable):
     plt.savefig(generate_filepath(metric, variable, 'png', adjusted=True), format='png')
     plt.savefig(generate_filepath(metric, variable, 'svg', adjusted=True), format='svg')
     plt.show()
+
+
+def print_adjusted_times(s_mean, i_mean, n_mean):
+    s_mean_adj = [s - n for s, n in zip(s_mean, n_mean)]
+    i_mean_adj = [i - n for i, n in zip(i_mean, n_mean)]
+
+    print(f'Adjusted CHERI execution times {s_mean_adj}')
+    print(f'Adjusted IPC execution times {i_mean_adj}')
 
 
 def print_adjusted_latencies(s_mean, i_mean, n_mean):
@@ -275,10 +283,12 @@ def plot_all(variable):
     plot_n(xs, s_lat_mean, s_lat_sd, i_lat_mean, i_lat_sd, n_lat_mean, n_lat_sd, Metric.PACKET_LATENCY, variable)
     plot_n(xs, s_util_mean, s_util_sd, i_util_mean, i_util_sd, n_util_mean, n_util_sd, Metric.CPU_UTILISATION, variable)
 
+    print_adjusted_times(s_time_mean, i_time_mean, n_time_mean)
+    plot_adjusted(xs, s_time_mean, s_time_sd, i_time_mean, i_time_sd, n_time_mean, Metric.TIME, variable)
     print_adjusted_latencies(s_lat_mean, i_lat_mean, n_lat_mean)
     plot_adjusted(xs, s_lat_mean, s_lat_sd, i_lat_mean, i_lat_sd, n_lat_mean, Metric.PACKET_LATENCY, variable)
     print_adjusted_utilisations(s_util_mean, i_util_mean, n_util_mean)
-    plot_adjusted(xs, s_util_mean, s_util_sd, i_util_mean, i_util_sd, n_util_mean, Metric.PACKET_LATENCY, variable)
+    plot_adjusted(xs, s_util_mean, s_util_sd, i_util_mean, i_util_sd, n_util_mean, Metric.CPU_UTILISATION, variable)
 
 
 if __name__ == '__main__':
